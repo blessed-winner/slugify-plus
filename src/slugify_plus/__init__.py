@@ -1,3 +1,3 @@
-from .core import slugify
+from .core import slugify, unique_slug
 
-__all__ = ["slugify"]
+__all__ = ["slugify", "unique_slug"]
