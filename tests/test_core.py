@@ -2,10 +2,6 @@ import pytest
 from slugify_plus import slugify, unique_slug
 
 
-# ===========================================================================
-# V1 — core slugify tests (unchanged)
-# ===========================================================================
-
 def test_basic_conversion():
     assert slugify("Hello World") == "hello-world"
 
@@ -80,24 +76,16 @@ def test_unicode_text():
     assert slugify("El Niño") == "el-nino"
 
 
-# ===========================================================================
-# V2 — max_length truncation
-# ===========================================================================
-
 def test_max_length_no_truncation_needed():
-    # Slug is shorter than max_length — returned unchanged
     assert slugify("Hello World", max_length=50) == "hello-world"
 
 
 def test_max_length_exact_fit():
-    # Slug length equals max_length exactly — returned unchanged
-    slug = slugify("Hello World")        # "hello-world" (11 chars)
+    slug = slugify("Hello World")
     assert slugify("Hello World", max_length=11) == slug
 
 
 def test_max_length_word_boundary_default():
-    # "my-first-blog-post" → trim at word boundary within 14 chars
-    # "my-first-blog-" → boundary at index 13 → "my-first-blog"
     result = slugify("my first blog post", max_length=14)
     assert result == "my-first-blog"
     assert len(result) <= 14
@@ -110,22 +98,18 @@ def test_max_length_word_boundary_multiple_words_removed():
 
 
 def test_max_length_hard_cut():
-    # word_boundary=False → cut at exactly max_length characters
     result = slugify("my first blog post", max_length=10, word_boundary=False)
     assert result == "my-first-b"
     assert len(result) == 10
 
 
 def test_max_length_hard_cut_strips_trailing_separator():
-    # If the hard cut lands on a separator it should be stripped
-    # "hello-world" cut at 6 → "hello-" → strip → "hello"
     result = slugify("hello world", max_length=6, word_boundary=False)
     assert not result.endswith("-")
     assert len(result) <= 6
 
 
 def test_max_length_single_word_longer_than_limit():
-    # No word boundary available — falls back to hard cut
     result = slugify("superlongword", max_length=5)
     assert result == "super"
     assert len(result) <= 5
@@ -139,10 +123,6 @@ def test_max_length_invalid_type():
         slugify("hello", max_length=-1)
 
 
-# ===========================================================================
-# V2 — reserved word handling
-# ===========================================================================
-
 RESERVED = {"admin", "login", "logout", "register"}
 
 
@@ -152,7 +132,6 @@ def test_reserved_raises_on_match():
 
 
 def test_reserved_raises_for_mixed_case_input():
-    # "Admin!" normalises to "admin" which is in the reserved set
     with pytest.raises(ValueError, match="reserved word"):
         slugify("Admin!", reserved=RESERVED)
 
@@ -162,7 +141,6 @@ def test_reserved_allows_non_reserved_slug():
 
 
 def test_reserved_empty_slug_not_checked():
-    # An empty slug result should pass through without raising
     assert slugify("!!!", reserved=RESERVED) == ""
 
 
@@ -170,10 +148,6 @@ def test_reserved_invalid_type():
     with pytest.raises(TypeError, match="reserved must be a set"):
         slugify("hello", reserved=["admin"])  # type: ignore
 
-
-# ===========================================================================
-# V2 — unique_slug helper
-# ===========================================================================
 
 def test_unique_slug_base_not_taken():
     taken: set = set()
@@ -194,7 +168,6 @@ def test_unique_slug_multiple_collisions():
 
 
 def test_unique_slug_exhausted_raises():
-    # Every candidate is "taken" — should raise RuntimeError
     with pytest.raises(RuntimeError, match="unique slug"):
         unique_slug("x", exists=lambda s: True, max_attempts=5)
 
@@ -215,7 +188,6 @@ def test_unique_slug_invalid_max_attempts():
 
 
 def test_unique_slug_combined_with_slugify():
-    # End-to-end: slugify a title then make it unique
     taken = {"my-first-blog-post", "my-first-blog-post-2"}
     base = slugify("My First Blog Post!")
     result = unique_slug(base, exists=lambda s: s in taken)

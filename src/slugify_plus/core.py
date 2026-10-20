@@ -32,7 +32,6 @@ def slugify(
         ValueError: If ``max_length`` is provided but is not a positive integer.
         ValueError: If the generated slug matches a word in ``reserved``.
     """
-    # --- Input validation ---
     if not isinstance(text, str):
         raise TypeError("Input text must be a string.")
     if not isinstance(separator, str):
@@ -45,40 +44,26 @@ def slugify(
     if reserved is not None and not isinstance(reserved, set):
         raise TypeError("reserved must be a set of strings.")
 
-    # --- Core slugification ---
-
-    # Normalize unicode characters (NFKD decomposition)
     normalized = unicodedata.normalize("NFKD", text)
-
-    # Strip accent marks (combining diacritical marks)
     stripped = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
-
-    # Lowercase and convert non-alphanumeric characters to spaces
     cleaned = "".join(c if c.isalnum() else " " for c in stripped.lower())
-
-    # Split on whitespace runs and join with separator
     words = cleaned.split()
     slug = separator.join(words)
 
-    # --- Max length truncation ---
     if max_length is not None and len(slug) > max_length:
         if word_boundary:
-            # Trim to max_length then cut back to the last full word
             truncated = slug[:max_length]
             boundary = truncated.rfind(separator)
             if boundary > 0:
                 slug = truncated[:boundary]
             else:
-                # Single word longer than max_length – hard-cut is the only option
                 slug = truncated
         else:
             slug = slug[:max_length]
 
-        # Remove a trailing separator that a hard-cut may have left
         while slug.endswith(separator):
             slug = slug[: -len(separator)]
 
-    # --- Reserved word check ---
     if reserved and slug in reserved:
         raise ValueError(
             f"Slug '{slug}' is a reserved word. "
@@ -95,19 +80,6 @@ def unique_slug(
 ) -> str:
     """Return a unique version of ``base_slug`` by appending an incrementing
     numeric suffix until ``exists`` returns False.
-
-    This function is intentionally framework-agnostic.  Supply any callable
-    that returns True when the candidate slug is already taken:
-
-        # Django example
-        slug = unique_slug(
-            slugify("My Post"),
-            exists=lambda s: Article.objects.filter(slug=s).exists(),
-        )
-
-        # Plain-Python example (checking a set)
-        taken = {"my-post", "my-post-2"}
-        slug = unique_slug("my-post", exists=lambda s: s in taken)
 
     Args:
         base_slug: The starting slug to make unique.
@@ -131,11 +103,9 @@ def unique_slug(
     if not isinstance(max_attempts, int) or max_attempts < 1:
         raise ValueError("max_attempts must be a positive integer.")
 
-    # Try the base slug first
     if not exists(base_slug):
         return base_slug
 
-    # Append incrementing numeric suffixes: base-2, base-3, …
     for n in range(2, max_attempts + 2):
         candidate = f"{base_slug}-{n}"
         if not exists(candidate):
